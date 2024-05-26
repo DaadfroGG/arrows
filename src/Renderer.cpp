@@ -11,9 +11,60 @@ Renderer::Renderer(SDL_Renderer* __attribute__((unused))renderer, SDL_Window* wi
 
     // Function to toggle fullscreen mode
 void Renderer::toggleFullscreen() {
-        Uint32 fullscreenFlag = SDL_GetWindowFlags(this->window) & SDL_WINDOW_FULLSCREEN;
-        SDL_SetWindowFullscreen(window, fullscreenFlag ? 0 : SDL_WINDOW_FULLSCREEN);
+    Uint32 fullscreenFlag = SDL_GetWindowFlags(this->window) & SDL_WINDOW_FULLSCREEN;
+    SDL_SetWindowFullscreen(window, fullscreenFlag ? 0 : SDL_WINDOW_FULLSCREEN);
 }
+
+void Renderer::setAlwaysOnTop() {
+    SDL_SysWMinfo wmInfo;
+    SDL_VERSION(&wmInfo.version);
+    if (SDL_GetWindowWMInfo(this->window, &wmInfo)) {
+        Display* display = wmInfo.info.x11.display;
+        Window root = DefaultRootWindow(display);
+        Window sdlWindowHandle = wmInfo.info.x11.window;
+
+        Atom wmStateAbove = XInternAtom(display, "_NET_WM_STATE_ABOVE", 0);
+        Atom wmNetWmState = XInternAtom(display, "_NET_WM_STATE", 0);
+        
+        if (wmStateAbove == None || wmNetWmState == None) {
+            std::cerr << "ERROR: cannot find atom for _NET_WM_STATE_ABOVE or _NET_WM_STATE" << std::endl;
+            return;
+        }
+
+        XClientMessageEvent xclient;
+        memset(&xclient, 0, sizeof(xclient));
+        xclient.type = ClientMessage;
+        xclient.window = sdlWindowHandle;
+        xclient.message_type = wmNetWmState;
+        xclient.format = 32;
+        xclient.data.l[0] = _NET_WM_STATE_ADD;
+        xclient.data.l[1] = wmStateAbove;
+        xclient.data.l[2] = 0;
+        xclient.data.l[3] = 1; // Normal window
+        xclient.data.l[4] = 0;
+
+        XSendEvent(display, root, False, SubstructureRedirectMask | SubstructureNotifyMask, (XEvent *)&xclient);
+
+        // Set the override_redirect attribute to True to make the window manager ignore it
+        XSetWindowAttributes attrs;
+        attrs.override_redirect = True;
+        XChangeWindowAttributes(display, sdlWindowHandle, CWOverrideRedirect, &attrs);
+
+        // Ensure the window is above others
+        XRaiseWindow(display, sdlWindowHandle);
+
+        // Reset the override_redirect attribute to False to regain window manager control
+        attrs.override_redirect = False;
+        XChangeWindowAttributes(display, sdlWindowHandle, CWOverrideRedirect, &attrs);
+
+        XFlush(display);
+    } else {
+        std::cerr << "Failed to get SDL window info" << std::endl;
+    }
+}
+
+
+
 // Destructor
 Renderer::~Renderer() {
     SDL_DestroyRenderer(this->renderer);

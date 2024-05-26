@@ -1,7 +1,7 @@
 SRC = main.cpp src/Renderer.cpp src/Tex.cpp
 OBJ = $(SRC:.cpp=.o)
 HEADER =
-LIBS = -lSDL2
+LIBS = -lSDL2 -L./lib/ -lm -lpthread -ldl -lX11 -lXext -lXrender -lXtst
 NAME = arrows-tmrk
 CPPFLAGS = -g3
 CC = g++

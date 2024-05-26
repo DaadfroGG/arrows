@@ -93,20 +93,73 @@ int interpolateColor(int color1, int color2, double t) {
     int b = (int) (b1 * (1 - t) + b2 * t);
     return (r << 16) + (g << 8) + b;
 }
+// Window management:
+void	MakeAlwaysOnTop(Display *display, Window root, Window mywin)
+{
+	Atom	wmStateAbove;
+	Atom	wmNetWmState;
+		XClientMessageEvent xclient;
 
+	wmStateAbove = XInternAtom(display, "_NET_WM_STATE_ABOVE", 1);
+	if (wmStateAbove != None)
+	{
+		printf("_NET_WM_STATE_ABOVE has atom of %ld\n", (long)wmStateAbove);
+	}
+	else
+	{
+		printf("ERROR: cannot find atom for _NET_WM_STATE_ABOVE !\n");
+		return ;
+	}
+	wmNetWmState = XInternAtom(display, "_NET_WM_STATE", 1);
+	if (wmNetWmState != None)
+	{
+		printf("_NET_WM_STATE has atom of %ld\n", (long)wmNetWmState);
+	}
+	else
+	{
+		printf("ERROR: cannot find atom for _NET_WM_STATE !\n");
+		return ;
+	}
+	// set window always on top hint
+	if (wmStateAbove != None)
+	{
+		memset(&xclient, 0, sizeof(xclient));
+		xclient.type = ClientMessage;
+		xclient.window = mywin;              // GDK_WINDOW_XID(window);
+		xclient.message_type = wmNetWmState;
+			//gdk_x11_get_xatom_by_name_for_display( display, "_NET_WM_STATE" );
+		xclient.format = 32;
+		xclient.data.l[0] = _NET_WM_STATE_ADD;
+			// add ? _NET_WM_STATE_ADD : _NET_WM_STATE_REMOVE;
+		xclient.data.l[1] = wmStateAbove;     
+			//gdk_x11_atom_to_xatom_for_display (display, state1);
+		xclient.data.l[2] = 0;                
+			//gdk_x11_atom_to_xatom_for_display (display, state2);
+		xclient.data.l[3] = 0;
+		xclient.data.l[4] = 0;
+		XSendEvent(display,
+					root,
+					False,
+					SubstructureRedirectMask | SubstructureNotifyMask,
+					(XEvent *)&xclient);
+		XFlush(display);
+		return ;
+	}
+	return ;
+}
 int main() {
-    Renderer renderer(nullptr, SDL_CreateWindow("SDL2", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WIDTH, HEIGHT, 0));
+    Renderer renderer(nullptr, SDL_CreateWindow("SDL2", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WIDTH, HEIGHT, SDL_WINDOW_FULLSCREEN));
     Events events;
     Tex tex(renderer.getRenderer(), renderer.getWindow(), MAP_WIDTH, MAP_HEIGHT);
     int arrow[2] = {MAP_WIDTH / 2, MAP_HEIGHT / 4};
-
+    renderer.setAlwaysOnTop();
     // Variables for dragging
     bool dragging = false;
     int lastMouseX = 0;
     int lastMouseY = 0;
     double hue = 0.99; // Use this to control the hue
     // Frame rate
-    Time frameTime;
+    Chew_Time frameChew_Time;
     double colorlol;
     double flip_flop = 1;
     int draw_mode = 1;
@@ -116,8 +169,8 @@ int main() {
     double lineRatio = 0.9;
     // Main loop
     while (!events.quit()) {
-        // Start the frame time
-        frameTime.start();
+        // Start the frame Chew_Time
+        frameChew_Time.start();
         // Clear the screen
         renderer.clear();
         // Update mouse position
@@ -188,7 +241,7 @@ int main() {
         }
         // Programmable movememt when mouse is at 0 0
         if (mouseX == 0 && mouseY == 0) {
-            double radius = 500.0; // Set the radius of the circle
+            double radius = 600.0; // Set the radius of the circle
             double centerX = MAP_WIDTH / 2;
             double centerY = MAP_HEIGHT / 2;
             double angle = colorlol * 2 * M_PI - M_PI / 2; // Convert colorlol to radians
@@ -207,28 +260,29 @@ int main() {
             double len = sqrt(dx * dx + dy * dy);
             double angle = atan2(dx, -dy);
             double angle_increment = angle;
-            int num_lines = 200;
+            int num_lines = 100;
 
 
             double startX = mouseX;
             double startY = mouseY;
             double prevEndX = startX;
             double prevEndY = startY;
-
+            int color1;
             renderer.drawTex(&tex, WIDTH / 2 - MAP_WIDTH / 2, HEIGHT / 2 - MAP_HEIGHT / 2);
             for (int i = 1; i <= num_lines; ++i) {
                 double endX = len * sin(angle_increment * (i + 1)) + startX;
                 double endY = -len * cos(angle_increment * (i + 1)) + startY;
 
-                HSV hsv1 = {colorlol * 360, 1.0, 1.0};
-                HSV hsv2 = {(-colorlol) * 360, 1.0, 1.0};
-                int color1 = hsvToRgb(hsv1);
+                HSV hsv1 = {fmod(colorlol * 360  + i * 5 , 360), 1.0, 1.0};
+                HSV hsv2 = {fmod((-colorlol) * 360  + i *5, 360), 1.0, 1.0};
+                color1 = hsvToRgb(hsv1);
                 int color2 = hsvToRgb(hsv2);
 
                 if (draw_mode) {
                     renderer.outlinePolygon(renderdraw_noflag, {Point(startX, startY), Point(endX, endY), Point(prevEndX, prevEndY)}, color1, 0);
                    // renderer.drawLine(renderdraw_noflag, startX, startY, endX, endY, color2, 0);
                 } else {
+
                     renderer.outlinePolygon(texdraw_noflag, {Point(startX, startY), Point(endX, endY), Point(prevEndX, prevEndY)}, color1, 0);
                     //renderer.drawLine(texdraw_noflag, startX, startY, endX, endY, color2, 0);
                 }
@@ -248,19 +302,15 @@ int main() {
         tex.update(renderer.getRenderer(), renderer.getWindow());
         if (tracemode)
             tex.clear();
-        if (dragging)
-            renderer.drawCircle(renderdraw_noflag, mouseX, mouseY, 10,0x00FF00, 0);
-        else
-            renderer.drawCircle(renderdraw_noflag, mouseX, mouseY, 10,0xFF00, 0);
-        
+        renderer.drawCircle(renderdraw_noflag, mouseX, mouseY, 10,color1, 0);
         renderer.update();
 
         // Limit the frame rate
-        frameTime.limit();
+        frameChew_Time.limit();
         if (colorlol >= 1) {
             colorlol = 0;
         }
-        colorlol += flip_flop / 10000;
+        colorlol += flip_flop / 3000;
     }
     return 0;
 }

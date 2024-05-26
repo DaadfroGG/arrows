@@ -67,7 +67,7 @@ class Events {
 };
 
 
-class Time {
+class Chew_Time {
     private:
         Uint32 startTicks;
         Uint32 pausedTicks;
@@ -75,7 +75,7 @@ class Time {
         bool paused;
         bool started;
     public:
-        Time() {
+        Chew_Time() {
             this->startTicks = 0;
             this->pausedTicks = 0;
             this->paused = false;
@@ -108,15 +108,15 @@ class Time {
             }
         }
         Uint32 getTicks() {
-            Uint32 time = 0;
+            Uint32 Chew_Time = 0;
             if (this->started) {
                 if (this->paused) {
-                    time = this->pausedTicks;
+                    Chew_Time = this->pausedTicks;
                 } else {
-                    time = SDL_GetTicks() - this->startTicks;
+                    Chew_Time = SDL_GetTicks() - this->startTicks;
                 }
             }
-            return time;
+            return Chew_Time;
         }
         bool isStarted() {
             return this->started;

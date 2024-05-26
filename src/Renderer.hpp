@@ -13,8 +13,21 @@
 #include <math.h>
 #include <sstream>
 #include <set>
-// #define GENERAL_Y 2560 / 2
-// #define GENERAL_X 1440 / 2
+
+#include <SDL2/SDL_syswm.h>
+#include <X11/Xlib.h>
+#include <X11/Xatom.h>
+
+#define _NET_WM_STATE_REMOVE 0 // remove/unset property
+#define _NET_WM_STATE_ADD 1    // add/set property
+#define _NET_WM_STATE_TOGGLE 2 // toggle property
+#define _NET_WM_USER_Chew_Time 0
+#define _NET_WM_DESKTOP 1
+#define _NET_WM_FULLSCREEN_MONITORS 2
+#define _NET_WM_WINDOW_TYPE 3
+
+// #define GENERAL_Y 2560 
+// #define GENERAL_X 1440
 #define GENERAL_Y 1920
 #define GENERAL_X 1080
 #define WIDTH GENERAL_Y
@@ -123,6 +136,7 @@ class Renderer {
         void drawTex(Tex* tex, int x, int y);
 
         void setPixel(int x, int y, int color , SDL_Renderer* renderer, int flag) ;
+        void setAlwaysOnTop(); // New method to make the window always on top
         // those are the functions that update the screen
         void update();
         void clear();
