@@ -110,6 +110,32 @@ class Tex {
         int getHeight();
         void setPixel(int x, int y, int color , SDL_Renderer* renderer, int flag);
         void setNoise(double noise);
+        void operateAllCanva(int nr,int ng,int nb){
+            for (int x = 0; x < this->width; x++){
+                for (int y = 0; y < this->height; y++){
+                    int r,g,b;
+                    r = (this->pixels[y * this->width + x] >> 16) & 0xFF;
+                    g = (this->pixels[y * this->width + x] >> 8) & 0xFF;
+                    b = this->pixels[y * this->width + x]  & 0xFF;
+                    r += nr;
+                    g += ng;
+                    b += nb;
+                    if (r > 255)
+                        r = 255;
+                    if (r < 0)
+                        r = 0;
+                    if (g > 255)
+                        g = 255;
+                    if (g < 0)
+                        g = 0;
+                    if (b > 255)
+                        b = 255;
+                    if (b < 0)
+                        b = 0;
+                    this->pixels[y * this->width + x] = r << 16 | g  << 8 | b ;
+                }
+            }
+        }
         void update(SDL_Renderer* renderer, SDL_Window* window);
         void clear();
         void save(const char* filename);
